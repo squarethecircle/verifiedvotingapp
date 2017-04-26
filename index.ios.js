@@ -43,10 +43,6 @@ export default class verifier extends Component {
     return (
       <View style={styles.c_view}>
         <Text style={{fontSize: 16}}>
-          Timestamp: {data['B_T']}{"\n"}
-          Beacon Value: {data['B_V']}{"\n"}
-        </Text>
-        <Text style={{fontSize: 16}}>
           Receipt generated at or after {timestr}.{"\n"}
         </Text>
         <Text style={{fontSize: 16}}>
@@ -55,9 +51,13 @@ export default class verifier extends Component {
         <Text style={{fontSize: 16}}>
           Voter ID: {data['ID']}{"\n"}
         </Text>
-        {challenges}
         <Text style={{fontSize: 16}}>
         {"\n"}Commitment: {data['CMT']}{"\n"}
+        </Text>
+        {challenges}
+        <Text style={{fontSize: 16}}>
+          {"\n"}Timestamp: {data['B_T']}{"\n"}
+          Beacon Value: {data['B_V']}{"\n"}
         </Text>
 				<Button
 					onPress={() => this.setState({c_view: null})}
@@ -75,6 +75,10 @@ export default class verifier extends Component {
   enterCiphertext = () => {
     this.setState({bar: this.verifySignature});
   }
+
+  enterBulletinBoard = () => {
+    this.setState({bar: this.verifyBulletinBoard});
+  }
   
   render() {
     return (
@@ -89,6 +93,7 @@ export default class verifier extends Component {
             captureTarget={Camera.constants.CaptureTarget.temp}
             barCodeTypes={['org.iso.QRCode']}
             onBarCodeRead={(e) => this.state.bar(e.data)}>
+            <Text style={this.state.bar == this.verifyBulletinBoard ? styles.captureQR : styles.capture} onPress={this.enterBulletinBoard}>[Verify Bulletin Board]</Text>
             <Text style={this.state.bar == this.readQR ? styles.captureQR : styles.capture} onPress={this.enterPlaintext}>[Load Plaintext]</Text>
             <Text style={this.state.bar == this.verifySignature ? styles.captureQR : styles.capture} onPress={this.enterCiphertext}>[Verify Signature]</Text> 
             </Camera> 
@@ -146,6 +151,37 @@ export default class verifier extends Component {
     this.setState({c_view: verified ? SUCCESS : FAIL});
   }
 
+  verifyBulletinBoard = (data) => {
+    this.setState({bar: () => null});
+		let button =
+			<Button
+				onPress={() => this.setState({c_view: null})}
+				title='Continue'
+				color="#841584"
+			/>;
+		let SUCCESS = <View style={styles.c_view}><Text style={{fontSize: 24, color: 'green'}}>VERIFIED -- RECEIPT FOUND ON BULLETIN BOARD</Text>{button}</View>;
+		let FAIL = <View style={styles.c_view}><Text style={{fontSize:24, color: 'red'}}>FAILED TO VERIFY -- RECEIPT NOT FOUND ON BULLETIN BOARD</Text>{button}</View>;
+		try {
+				fetch('https://9ecf4c0a.ngrok.io/verify', {  
+					method: 'POST',  
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json'
+					}, 
+					body: data
+				})
+				.then((response) => response.json())
+				.then((d) => {
+					if (d['verified']) {
+						this.setState({c_view: SUCCESS});
+					} else {
+						this.setState({c_view: FAIL});
+					}
+				})  
+		} catch (e) {
+			this.setState({c_view: FAIL});
+		}
+  }
 }
 
 
@@ -171,7 +207,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     color: '#000',
     padding: 10,
-    margin: 40
+    marginBottom: 30
   },
   capture: {
     flex: 0,
@@ -179,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     color: '#000',
     padding: 10,
-    margin: 40
+    marginBottom: 30
   }
 });
 
